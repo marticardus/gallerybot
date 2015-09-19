@@ -7,12 +7,10 @@ from gallery import Gallery, File
 from menu import MenuClass
 from flask.ext.thumbnails import Thumbnail
 
-
 app = Flask(__name__)
 app.config.from_object('config.Config')
 menu = MenuClass()
 thumb = Thumbnail(app)
-
 
 @app.route('/gallery/<int:id>')
 def gallery(id):
