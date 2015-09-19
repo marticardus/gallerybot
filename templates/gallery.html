@@ -4,12 +4,16 @@
 <div class="table-responsive">
     <table class="table">
             <tr>
-                    <th>ID</th><th>Name</th><th>Actions</th>
+                    <th>ID</th><th>Image</th><th>Actions</th>
             </tr>
             {% for file in files %}
             <tr>
                     <td>{{ file.eid }}</td>
-                    <td><a href="{{ url_for('image', file_id = file.eid) }}">{{ file.file_id }}</a></td>
+                    <td>
+                            <a href="{{ url_for('image', file_id = file.eid) }}">
+                                    <img src="{{ file.file_id|thumbnail('200x200') }}" alt="{{ file.file_id }}">
+                            </a>
+                    </td>
                     <td>actions</td>
             </tr>
             {% endfor %}

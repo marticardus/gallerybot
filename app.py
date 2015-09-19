@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 import os, json
-from flask import Flask, request, url_for
+from flask import Flask, request, url_for, send_file, send_from_directory
 from telegram import Bot
 from utils import get_table
 from gallery import Gallery, File
 from menu import MenuClass
+from flask.ext.thumbnails import Thumbnail
+
 
 app = Flask(__name__)
-menu = MenuClass()
 app.config.from_object('config.Config')
+menu = MenuClass()
+thumb = Thumbnail(app)
 
 
 @app.route('/gallery/<int:id>')
@@ -19,9 +22,15 @@ def gallery(id):
     files = f.get_all(id)
     return menu.render('gallery.html', gallery = gallery, files = files)
 
+@app.route('/media/<string:filename>')
+def media_file(filename):
+    return send_from_directory(app.config['MEDIA_THUMBNAIL_FOLDER'], filename)
+
 @app.route('/image/<int:file_id>')
 def image(file_id):
-    pass
+    f = File()
+    info = f.getid(file_id)
+    return send_file(os.path.join(app.config.get('FILE_PATH'), info['document']['file_id']), info['document']['mime_type'], attachment_filename = info['document']['file_name'])
 
 @menu.add('Index', '/')
 @app.route('/')
@@ -41,8 +50,7 @@ def telegramWebHook():
             upload = bot.download(data)
             if upload:
                 file_id = f.add(g.get(data['chat']['id']), upload)
-                return url_for('image', file_id = file_id, _external = True)
-                pass
+                return url_for('image', file_id = file_id, _external = True, disable_web_page_preview = True)
             else:
                 text = 'Failed to download file'
         else:
@@ -52,7 +60,7 @@ def telegramWebHook():
         args = data['text'].split(' ')
         if args[0] == '/create':
             eid = g.create(data['chat']['id'], data['chat']['title'])
-            text = 'Gallery URL: %s' % url_for('gallery', id = eid, _external = True)
+            text = 'Gallery URL: %s' % url_for('gallery', id = eid, _external = True, _scheme = 'https')
         if args[0] == '/remove':
             g.delete(data['chat']['id'])
             # TODO: Confirm

@@ -1,6 +1,8 @@
 from utils import get_table
 from tinydb import where
 from tinydb.operations import delete
+from flask import current_app
+import os, json
 
 class Gallery(object):
     def __init__(self):
@@ -26,7 +28,7 @@ class Gallery(object):
         
 
 class File(object):
-    def __init__(self):
+    def __init__(self, app = None):
         self.db = get_table('files')
 
     def add(self, gallery_id, file_id):
@@ -42,3 +44,12 @@ class File(object):
     def get_all(self, gallery_id):
         rows = self.db.search(where('gallery_id') == gallery_id)
         return rows
+
+    def getid(self, eid):
+        f = self.db.get(eid = eid)
+        if f:
+            path = current_app.config.get('FILE_PATH')
+            with open(os.path.join(path, '%s.json' % f['file_id']), 'r') as file_info:
+                d = json.load(file_info)
+                return d
+        return False
