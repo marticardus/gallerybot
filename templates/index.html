@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="table-responsive">
+    <table class="table">
+            <tr>
+                    <th>ID</th><th>Name</th><th>Actions</th>
+            </tr>
+            {% for gallery in galleries %}
+            <tr>
+                    <td>{{ gallery.eid }}</td>
+                    <td><a href="{{ url_for('gallery', id = gallery.eid) }}">{{ gallery.name }}</a></td>
+                    <td>actions</td>
+            </tr>
+            {% endfor %}
+    </table>
+</div>
+{% endblock %}
