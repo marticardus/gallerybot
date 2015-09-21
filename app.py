@@ -45,8 +45,6 @@ def telegramWebHook():
     g = Gallery()
     f = File()
     update = Update.de_json(request.get_json(force=True))
-    print vars(update.message)
-    print update
     text = None
     if getattr(update.message, 'document'):
         g_id = g.get(update.message.chat.id)
@@ -107,8 +105,8 @@ def telegramWebHook():
                 text = g.config(update.message.chat.id, args[0])
             else:
                 text = g.config(update.message.chat.id, args[0], args[1])
-        else:
-            text = update.to_json()
+        #else:
+        #    text = update.to_json()
     if text:
         bot.sendMessage(update.message.chat.id, text, disable_web_page_preview=True)
     return ""
