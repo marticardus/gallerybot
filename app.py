@@ -59,7 +59,7 @@ def telegramWebHook():
                     fileinfo.close()
             if os.path.exists(dest_file):
                 file_id = f.add(g.get(update.message.chat.id), update.message.document.file_id)
-                return url_for('image', file_id = file_id, _external = True, disable_web_page_preview = True)
+                text = 'File URL: %s' % url_for('image', file_id = file_id, _external = True, disable_web_page_preview = True)
             else:
                 text = 'Failed to download file'
         else:
@@ -86,7 +86,7 @@ def telegramWebHook():
             else:
                 text = 'config var'
     if text:
-        bot.sendMessage(update.message.chat.id, text)
+        bot.sendMessage(update.message.chat.id, text, disable_web_page_preview=True)
     return ""
 
 if __name__ == '__main__':
