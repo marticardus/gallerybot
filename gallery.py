@@ -15,7 +15,10 @@ class Gallery(object):
     def delete(self, tgid):
         row = self.db.get(where('tgid') == tgid)
         if row:
-            self.db.remove(eids = [ row.eid ])
+            f = File()
+            files = f.get_all(row.eid)
+            for fd in files:
+                f.delete(fd.eid)
 
     def getid(self, id):
         return self.db.get(eid=id)
@@ -28,8 +31,17 @@ class Gallery(object):
         
 
 class File(object):
-    def __init__(self, app = None):
+    def __init__(self):
         self.db = get_table('files')
+
+    def delete(self, file_id):
+        row = self.db.get(eid=file_id)
+        if row:
+            if os.path.exists(os.path.join(current_app.config.get('FILE_PATH'), row['file_id'])):
+                os.remove(os.path.join(current_app.config.get('FILE_PATH'), row['file_id']))
+            if os.path.exists(os.path.join(current_app.config.get('FILE_PATH'), '%s.json' % row['file_id'])):
+                os.remove(os.path.join(current_app.config.get('FILE_PATH'), '%s.json' % row['file_id']))
+            self.db.remove(eids = [ row.eid ])
 
     def add(self, gallery_id, file_id):
         id = self.get(file_id)

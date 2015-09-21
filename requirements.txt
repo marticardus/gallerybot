@@ -2,3 +2,4 @@ flask
 requests
 git+https://github.com/SilentSokolov/flask-thumbnails.git
 tinydb
+python-telegram-bot

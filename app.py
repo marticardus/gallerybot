@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import os, json
+import shutil
 from flask import Flask, request, url_for, send_file, send_from_directory
-from telegram import Bot
+from telegram import Bot, Update
 from utils import get_table
 from gallery import Gallery, File
 from menu import MenuClass
@@ -28,7 +29,9 @@ def media_file(filename):
 def image(file_id):
     f = File()
     info = f.getid(file_id)
-    return send_file(os.path.join(app.config.get('FILE_PATH'), info['document']['file_id']), info['document']['mime_type'], attachment_filename = info['document']['file_name'])
+    return send_file(os.path.join(app.config.get('FILE_PATH'), info['message']['document']['file_id']), 
+            mimetype = info['message']['document'].get('mime_type', 'text/plain'), 
+            attachment_filename = info['message']['document']['file_name'])
 
 @menu.add('Index', '/')
 @app.route('/')
@@ -40,27 +43,38 @@ def index():
 def telegramWebHook():
     g = Gallery()
     f = File()
-    data = request.json['message']
+    update = Update.de_json(request.get_json(force=True))
     text = None
-    if 'document' in data:
-        id = g.get(data['chat']['id'])
-        if id:
-            upload = bot.download(data)
-            if upload:
-                file_id = f.add(g.get(data['chat']['id']), upload)
+    if getattr(update.message, 'document'):
+        g_id = g.get(update.message.chat.id)
+        if g_id:
+            newfile = bot.getFile(update.message.document.file_id)
+            file_name = update.message.document.file_id
+            dest_file = os.path.join(app.config.get('FILE_PATH'), file_name)
+            newfile.download(file_name)
+            if os.path.exists(file_name):
+                shutil.move(file_name, dest_file)
+                with open('%s.json' % dest_file, 'w') as fileinfo:
+                    fileinfo.write(update.to_json())
+                    fileinfo.close()
+            if os.path.exists(dest_file):
+                file_id = f.add(g.get(update.message.chat.id), update.message.document.file_id)
                 return url_for('image', file_id = file_id, _external = True, disable_web_page_preview = True)
             else:
                 text = 'Failed to download file'
         else:
             text = 'Gallery does not exist, please create first'
         pass
-    if 'text' in data:
-        args = data['text'].split(' ')
+    if getattr(update.message, 'text'):
+        args = update.message.text.split(' ')
         if args[0] == '/create':
-            eid = g.create(data['chat']['id'], data['chat']['title'])
-            text = 'Gallery URL: %s' % url_for('gallery', id = eid, _external = True, _scheme = 'https')
+            if hasattr(update.message.chat, 'title'):
+                eid = g.create(update.message.chat.id, update.message.chat.title)
+                text = 'Gallery URL: %s' % url_for('gallery', id = eid, _external = True, _scheme = 'https')
+            else:
+                text = 'Bot only works in groups'
         if args[0] == '/remove':
-            g.delete(data['chat']['id'])
+            g.delete(update.message.chat.id)
             # TODO: Confirm
             text = 'Gallery deleted'
         if args[0] == '/config':
@@ -72,12 +86,10 @@ def telegramWebHook():
             else:
                 text = 'config var'
     if text:
-        bot.sendMessage(data['chat']['id'], text)
+        bot.sendMessage(update.message.chat.id, text)
     return ""
-
 
 if __name__ == '__main__':
     bot = Bot(app.config.get('TOKEN'))
     bot.setWebhook('https://%s/%s' % (app.config.get('WEBHOOK_HOST'), app.config.get('WEBHOOK_ROUTE')))
-    bot.set('file_path', app.config.get('FILE_PATH'))
     app.run(host='0.0.0.0')
