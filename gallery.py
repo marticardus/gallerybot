@@ -29,6 +29,43 @@ class Gallery(object):
             return id.eid
         return None
         
+    def config_get_value(self, tgid, var):
+        gallery_id = self.get(tgid)
+        if gallery_id:
+            row = self.db.get(eid = gallery_id)
+            if row and var in row:
+                return row[var]
+        return None
+
+    def config(self, tgid, var = None, value = None):
+        row = self.get(tgid)
+        if row:
+            gallery_id = row
+        else:
+            return 'Gallery not found'
+        if var:
+            if value:
+                self.db.update({ var : value }, eids = [ gallery_id ])
+                return '%s saved' % var
+            else:
+                row = self.db.get(eid = gallery_id)
+                if row:
+                    return 'Var %s = %s' % (var, row[var])
+                else:
+                    return 'Not found'
+        else:
+            row = self.db.get(eid = gallery_id)
+            row.pop('tgid')
+            return row
+
+    def get_all(self):
+        galleries = list()
+        rows = self.db.all()
+        for row in rows:
+            public = row.get('public', True)
+            if public == 'True' or public == True:
+                galleries.append(row)
+        return galleries
 
 class File(object):
     def __init__(self):
