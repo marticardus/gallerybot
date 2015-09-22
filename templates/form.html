@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block body %}
+<form class="form-signin" method="post" action="">
+        <h2 class="form-signin-heading">Add/Edit</h2>
+        {% for key, value in form.items() %}
+        <label for="{{ key }}" class="sr-only">{{ key }}</label>
+        <input value="{{ value }}" name="{{ key }}" type="text" id="{{ key }}" class="form-control" placeholder="{{ key }}" required autofocus>
+        {% endfor %}
+
+        <div class="btn-group btn-group-justified" role="group" aria-label="buttons">
+                <div class="btn-group" role="group">
+                        <button name="submit" value="save" class="btn btn-lg btn-primary" type="submit">Save</button>
+                </div>
+                <div class="btn-group" role="group">
+                        <button name="submit" value="save-return" class="btn btn-lg btn-success" type="submit">Save and return</button>
+                </div>
+                {% if form.eid %}
+                <div class="btn-group" role="group">
+                        <button name="submit" value="delete" class="btn btn-lg btn-danger" type="submit">Delete</button>
+                </div>
+                {% endif %}
+        </div>
+</form>
+{% endblock %}

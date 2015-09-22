@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, json
 import shutil
-from flask import Flask, request, url_for, send_file, send_from_directory
+from flask import Flask, request, url_for, send_file, send_from_directory, jsonify
 from telegram import Bot, Update
 from utils import get_table
 from gallery import Gallery, File
@@ -13,6 +13,15 @@ app = Flask(__name__)
 app.config.from_object('config.Config')
 menu = MenuClass()
 thumb = Thumbnail(app)
+
+@app.route('/users', defaults = { 'eid' : None }, methods = [ 'GET', 'POST' ])
+@app.route('/users/<int:eid>', methods = [ 'GET', 'POST' ])
+def users(eid):
+    if eid:
+        return menu.render('form.html', form = User().get(eid = eid).as_dict())
+    else:
+        return menu.render('list.html', items = User().all())
+#        return jsonify(users = [u.as_dict() for u in User().all()])
 
 @app.route('/gallery/<int:id>')
 def gallery(id):
@@ -70,17 +79,28 @@ def telegramWebHook():
         pass
     if getattr(update.message, 'text'):
         args = update.message.text.split(' ', 2)
+        print update.message
         if args[0] == '/register':
             text = 'Username:'
-            bot.sendMessage(update.message.from_user.id, text, reply_markup = { 'force_reply' : True })
             user = User(update.message.from_user.id)
+            gallery = g.get(update.message.chat.id)
+            if user.username is not None:
+                text = 'Complete register: https://telegram.me/ACSGalleryBot?start=%s' % update.message.from_user.id
+            else:
+                text = 'User added to gallery'
             # set gallery permission at this point because i have chat id
-            return 'ok'
+        elif args[0] == '/start':
+            if int(args[1]) == int(update.message.chat.id):
+                text = 'Username:'
+                bot.sendMessage(update.message.from_user.id, text, reply_markup = { 'force_reply' : True })
+            else:
+                text = update.to_json()
+
         elif getattr(update.message, 'reply_to_message'):
             if update.message.reply_to_message.text == 'Username:':
-                user = User(update.message.from_user.id, username = update.message.text)
+                user = User(update.message.chat.id, username = update.message.text)
                 user.save()
-                bot.sendMessage(update.message.from_user.id, 'Password:', reply_markup = { 'force_reply' : True })
+                bot.sendMessage(update.message.chat.id, 'Password:', reply_markup = { 'force_reply' : True })
                 return 'ok'
             elif update.message.reply_to_message.text == 'Password:':
                 user = User(update.message.from_user.id, password = update.message.text)

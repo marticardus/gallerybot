@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="table-responsive">
+    <table class="table">
+            <tr>
+                    <th>ID</th><th>Values</th><th>Actions</th>
+            </tr>
+            {% for item in items %}
+            <tr>
+                    <td>{{ item.eid }}</td>
+                    <td>
+                            <ul>
+                                    {% for key, value in item.as_dict().items() %}
+                                    <li>{{ key }} = {{ value }}</li>
+                                    {% endfor %}
+                            </ul>
+                    </td>
+                    <td><a href="{{ url_for(endpoint, eid = item.eid) }}">{{ item.eid }}</a></td>
+            </tr>
+            {% endfor %}
+    </table>
+</div>
+{% endblock %}
