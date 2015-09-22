@@ -14,6 +14,7 @@ app.config.from_object('config.Config')
 menu = MenuClass()
 thumb = Thumbnail(app)
 
+@menu.add('Users', '/users')
 @app.route('/users', defaults = { 'eid' : None }, methods = [ 'GET', 'POST' ])
 @app.route('/users/<int:eid>', methods = [ 'GET', 'POST' ])
 def users(eid):
