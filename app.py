@@ -12,7 +12,7 @@ from models.user import User
 from models.file import File
 from models.gallery import Gallery
 from common.menu import MenuClass
-from common.utils import read_file, read_json, write_file, write_json
+from common.utils import read_file, read_json, write_file, write_json, thumbnail
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
@@ -51,7 +51,9 @@ def media_file(filename):
     return send_from_directory(app.config['MEDIA_THUMBNAIL_FOLDER'], filename)
 
 @app.route('/image/<int:file_id>')
+@app.route('/thumb/<int:file_id>')
 def image(file_id):
+    thumb = True if '/thumb/' in request.url_rule.rule else False
     file_obj = File().get(file_id)
     info = read_json('%s.json' % file_obj.file_id)
     storage = app.config.get('STORAGE', 'local')
@@ -62,6 +64,7 @@ def image(file_id):
     elif storage == 's3':
         scheme = 'http'
         filename = '/'.join([ app.config.get('MEDIA_FOLDER', 'media'), info['message']['document']['file_id'] ])
+        if thumb: filename = '%s_200x200' % filename
         return redirect('%s://%s.%s/%s' % (scheme, app.config.get('S3_BUCKET'), app.config.get('S3_SERVER'), filename))
 
 @menu.add('Index', '/')
@@ -82,6 +85,7 @@ def telegramWebHook():
             writed = False
             if os.path.exists(file_name):
                 writed = write_file(file_name, read_file(file_name, storage = 'local', append_path = False), acl = 'public-read', mime_type = update.message.document.mime_type)
+                thumbnail(file_name)
                 os.remove(file_name)
                 write_file('%s.json' % file_name, update.to_json())
             if writed:
@@ -97,7 +101,6 @@ def telegramWebHook():
         pass
     if getattr(update.message, 'text'):
         args = update.message.text.split(' ', 2)
-        print update.message
         if args[0] == '/register':
             text = 'Username:'
             user = User().search(tgid = update.message.from_user.id)

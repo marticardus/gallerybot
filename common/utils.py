@@ -74,3 +74,13 @@ def write_json(filename, data):
 
 def read_json(filename):
     return json.loads(read_file(filename))
+
+def thumbnail(filename, width = 200, height = 200):
+    from PIL import Image
+    from io import BytesIO
+    im = Image.open(filename)
+    im.thumbnail(( width, height ))
+    temp_file = BytesIO()
+    im.save(temp_file, im.format)
+    filename = '%s_%sx%s' % (filename, width, height)
+    write_file(filename, temp_file.getvalue(), acl = 'public-read')
