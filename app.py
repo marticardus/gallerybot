@@ -31,6 +31,15 @@ def users(eid):
     else:
         return menu.render('list.html', items = User().all())
 
+@app.route('/gallery/<int:id>/edit', methods = [ 'GET', 'POST' ])
+def gallery_edit(id):
+    if request.method == 'POST':
+        gallery = Gallery().from_form(request.form)
+        gallery.save()
+    else:
+        gallery = Gallery().get(id)
+    return menu.render('form.html', form = gallery.as_dict())
+
 @app.route('/gallery/<int:id>')
 def gallery(id):
     gallery = Gallery().get(id)

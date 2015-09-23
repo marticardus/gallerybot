@@ -6,7 +6,7 @@ import copy
 
 class Model(object):
     table = 'default'
-    exclude_fields = [ 'db', 'table' ]
+    exclude_fields = [ 'db', 'table', 'submit' ]
 
     def __init__(self, **kwargs):
         table = os.path.join(current_app.config.get('DB_PATH', 'gallery_db'), '%s.json' % self.table)
@@ -58,6 +58,7 @@ class Model(object):
 
     def save(self):
         if self.eid:
+            self.eid = int(self.eid)
             return self.update()
         else:
             create = self.create()
@@ -86,3 +87,8 @@ class Model(object):
         for key, value in row.items():
             setattr(self, key, value)
         return copy.copy( self )
+
+    def from_form(self, form):
+        for key, value in form.items():
+            setattr(self, key, value)
+        return self

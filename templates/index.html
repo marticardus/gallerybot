@@ -9,7 +9,9 @@
             <tr>
                     <td>{{ gallery.eid }}</td>
                     <td><a href="{{ url_for('gallery', id = gallery.eid) }}">{{ gallery.title }}</a></td>
-                    <td>actions</td>
+                    <td>
+                            <a href="{{ url_for('gallery_edit', id = gallery.eid) }}">Edit</a>
+                    </td>
             </tr>
             {% endfor %}
     </table>
