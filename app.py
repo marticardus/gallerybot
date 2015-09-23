@@ -1,35 +1,40 @@
 # -*- coding: utf-8 -*-
+# System
 import os, json
 import shutil
-from flask import Flask, request, url_for, send_file, send_from_directory, jsonify
+
+# 3rd party
+from flask import Flask, request, url_for, send_file, send_from_directory, jsonify, redirect
 from telegram import Bot, Update
-from utils import get_table
-from gallery import Gallery, File
-from menu import MenuClass
-from flask.ext.thumbnails import Thumbnail
-from users import User
+
+# Custom
+from models.user import User
+from models.file import File
+from models.gallery import Gallery
+from common.menu import MenuClass
+from common.utils import read_file, read_json, write_file, write_json
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
 menu = MenuClass()
-thumb = Thumbnail(app)
 
 @menu.add('Users', '/users')
 @app.route('/users', defaults = { 'eid' : None }, methods = [ 'GET', 'POST' ])
+@app.route('/users/add', defaults = { 'eid' : 0 }, methods = [ 'GET', 'POST' ])
 @app.route('/users/<int:eid>', methods = [ 'GET', 'POST' ])
 def users(eid):
     if eid:
-        return menu.render('form.html', form = User().get(eid = eid).as_dict())
+        if eid == 0:
+            return menu.render('form.html', form = { 'username' : 'username', 'password' : 'password'} )
+        else:
+            return menu.render('form.html', form = User().get(eid = eid).as_dict())
     else:
         return menu.render('list.html', items = User().all())
-#        return jsonify(users = [u.as_dict() for u in User().all()])
 
 @app.route('/gallery/<int:id>')
 def gallery(id):
-    f = File()
-    g = Gallery()
-    gallery = g.getid(id)
-    files = f.get_all(id)
+    gallery = Gallery().get(id)
+    files = File().filter( gallery_eid = gallery.eid )
     return menu.render('gallery.html', gallery = gallery, files = files)
 
 @app.route('/media/<string:filename>')
@@ -38,41 +43,44 @@ def media_file(filename):
 
 @app.route('/image/<int:file_id>')
 def image(file_id):
-    f = File()
-    info = f.getid(file_id)
-    return send_file(os.path.join(app.config.get('FILE_PATH'), info['message']['document']['file_id']), 
+    file_obj = File().get(file_id)
+    info = read_json('%s.json' % file_obj.file_id)
+    storage = app.config.get('STORAGE', 'local')
+    if storage == 'local':
+        return send_file(os.path.join(app.config.get('FILE_PATH'), info['message']['document']['file_id']), 
             mimetype = info['message']['document'].get('mime_type', 'text/plain'), 
             attachment_filename = info['message']['document']['file_name'])
+    elif storage == 's3':
+        scheme = 'http'
+        filename = '/'.join([ app.config.get('MEDIA_FOLDER', 'media'), info['message']['document']['file_id'] ])
+        return redirect('%s://%s.%s/%s' % (scheme, app.config.get('S3_BUCKET'), app.config.get('S3_SERVER'), filename))
 
 @menu.add('Index', '/')
 @app.route('/')
 def index():
-    g = Gallery()
-    return menu.render('index.html', galleries = g.get_all())
+    return menu.render('index.html', galleries = Gallery().all())
 
 @app.route('/%s' % app.config.get('WEBHOOK_ROUTE'), methods=['POST'])
 def telegramWebHook():
-    g = Gallery()
-    f = File()
     update = Update.de_json(request.get_json(force=True))
     text = None
     if getattr(update.message, 'document'):
-        g_id = g.get(update.message.chat.id)
-        if g_id:
+        gallery = Gallery().search(tgid = update.message.chat.id)
+        if gallery:
             newfile = bot.getFile(update.message.document.file_id)
             file_name = update.message.document.file_id
-            dest_file = os.path.join(app.config.get('FILE_PATH'), file_name)
             newfile.download(file_name)
+            writed = False
             if os.path.exists(file_name):
-                shutil.move(file_name, dest_file)
-                with open('%s.json' % dest_file, 'w') as fileinfo:
-                    fileinfo.write(update.to_json())
-                    fileinfo.close()
-            if os.path.exists(dest_file):
-                file_id = f.add(g.get(update.message.chat.id), update.message.document.file_id)
-                sendLink = g.config_get_value(update.message.chat.id, 'sendLink')
+                writed = write_file(file_name, read_file(file_name, storage = 'local', append_path = False), acl = 'public-read', mime_type = update.message.document.mime_type)
+                os.remove(file_name)
+                write_file('%s.json' % file_name, update.to_json())
+            if writed:
+                file_id = File(gallery_eid = gallery.eid, file_id = update.message.document.file_id)
+                file_id.save()
+                sendLink = getattr(gallery, 'sendLink', None)
                 if sendLink == 'True':
-                    text = 'File URL: %s' % url_for('image', file_id = file_id, _external = True, disable_web_page_preview = True)
+                    text = 'File URL: %s' % url_for('image', file_id = file_id.eid, _external = True, disable_web_page_preview = True)
             else:
                 text = 'Failed to download file'
         else:
@@ -83,9 +91,9 @@ def telegramWebHook():
         print update.message
         if args[0] == '/register':
             text = 'Username:'
-            user = User(update.message.from_user.id)
-            gallery = g.get(update.message.chat.id)
-            if user.username is not None:
+            user = User().search(tgid = update.message.from_user.id)
+            if not user:
+                User(tgid = update.message.from_user.id).save()
                 text = 'Complete register: https://telegram.me/ACSGalleryBot?start=%s' % update.message.from_user.id
             else:
                 text = 'User added to gallery'
@@ -99,33 +107,45 @@ def telegramWebHook():
 
         elif getattr(update.message, 'reply_to_message'):
             if update.message.reply_to_message.text == 'Username:':
-                user = User(update.message.chat.id, username = update.message.text)
+                user = User().search(tgid = update.message.chat.id)
+                user.username = update.message.text
                 user.save()
                 bot.sendMessage(update.message.chat.id, 'Password:', reply_markup = { 'force_reply' : True })
                 return 'ok'
             elif update.message.reply_to_message.text == 'Password:':
-                user = User(update.message.from_user.id, password = update.message.text)
+                user = User().search(tgid = update.message.chat.id)
+                user.password = update.message.text
                 user.save()
                 text = 'User succesfuly registered'
         elif args[0] == '/create':
             if hasattr(update.message.chat, 'title'):
-                eid = g.create(update.message.chat.id, update.message.chat.title)
-                text = 'Gallery URL: %s' % url_for('gallery', id = eid, _external = True, _scheme = 'https')
+                gallery = Gallery().search(tgid = update.message.chat.id)
+                if not gallery:
+                    gallery = Gallery(tgid = update.message.chat.id, title = update.message.chat.title).save()
+                text = 'Gallery URL: %s' % url_for('gallery', id = gallery.eid, _external = True, _scheme = 'https')
             else:
                 text = 'Bot only works in groups'
         elif args[0] == '/remove':
-            g.delete(update.message.chat.id)
+            gallery = Gallery().search(tgid = update.message.chat.id)
+            if gallery:
+                gallery.delete()
+                text = 'Gallery deleted'
+            else:
+                text = 'Gallery is not registered'
             # TODO: Confirm
-            text = 'Gallery deleted'
         elif args[0] == '/config':
             args.pop(0)
-            if len(args) == 0:
-                text = g.config(update.message.chat.id)
-            elif len(args) == 1:
-                text = 'get one'
-                text = g.config(update.message.chat.id, args[0])
+            gallery = Gallery.search(tgid = update.message.chat.id)
+            if gallery:
+                if len(args) == 0:
+                    text = g.config(update.message.chat.id)
+                elif len(args) == 1:
+                    text = 'get one'
+                    text = g.config(update.message.chat.id, args[0])
+                else:
+                    text = g.config(update.message.chat.id, args[0], args[1])
             else:
-                text = g.config(update.message.chat.id, args[0], args[1])
+                text = 'Gallery is not registered'
         #else:
         #    text = update.to_json()
     if text:

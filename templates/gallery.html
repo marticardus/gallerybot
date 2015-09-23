@@ -11,7 +11,7 @@
                     <td>{{ file.eid }}</td>
                     <td>
                             <a href="{{ url_for('image', file_id = file.eid) }}">
-                                    <img src="{{ file.file_id|thumbnail('200x200') }}" alt="{{ file.file_id }}">
+                                    <img src="{{ file.file_id }}" alt="{{ file.file_id }}">
                             </a>
                     </td>
                     <td>actions</td>

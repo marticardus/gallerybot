@@ -1,5 +1,6 @@
 from flask import current_app
 from tinydb import TinyDB, where
+from .tinydbs3 import S3Storage
 import os
 import copy
 
@@ -8,11 +9,11 @@ class Model(object):
     exclude_fields = [ 'db', 'table' ]
 
     def __init__(self, **kwargs):
-        table = os.path.join(current_app.config.get('DB_DIR', '/tmp'), '%s.json' % self.table)
-        self.db = TinyDB(table)
+        table = os.path.join(current_app.config.get('DB_PATH', 'gallery_db'), '%s.json' % self.table)
+        self.db = TinyDB(table, storage = S3Storage)
         self.eid = None
 
-        for key, value in kwargs:
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def all(self):
@@ -21,31 +22,50 @@ class Model(object):
             rows.append( self.as_obj(row) )
         return rows
 
+    def filter(self, **kwargs):
+        rows = list()
+        eids = list()
+        for field, value in kwargs.iteritems():
+            founds = self.db.search(where(field) == value)
+            for found in founds if founds else []:
+                if found.eid not in eids:
+                    eids.append(found.eid)
+                    rows.append( self.as_obj(found) )
+        return rows
+
     def get(self, eid):
         row = self.db.get(eid = eid)
         if row:
             return self.as_obj(row)
         return False
 
-    def search(self, field, value):
-        row = self.db.search(where(field) == value)
-        if row:
-            return self.as_obj(row)
+    def search(self, **kwargs):
+        for field, value in kwargs.iteritems():
+            row = self.db.search(where(field) == value)
+            if row:
+                if type(row) == list:
+                    row = row[0]
+                return self.as_obj(row)
         return False
 
     def create(self):
-        insert = self.args_to_dict()
+        insert = self.as_dict()
         return self.db.insert(insert)
 
     def update(self):
-        update = self.args_to_dict()
+        update = self.as_dict()
         return self.db.update(update, eids = [ self.eid ])
 
     def save(self):
         if self.eid:
             return self.update()
         else:
-            return self.create()
+            create = self.create()
+            self.eid = create
+            return self
+
+    def delete(self):
+        self.db.remove( eids = [ self.eid ] )
 
     def as_dict(self):
         args = dict()
