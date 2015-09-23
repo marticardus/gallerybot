@@ -50,8 +50,8 @@ def gallery(id):
 def media_file(filename):
     return send_from_directory(app.config['MEDIA_THUMBNAIL_FOLDER'], filename)
 
-@app.route('/image/<int:file_id>')
-@app.route('/thumb/<int:file_id>')
+@app.route('/image/<int:file_id>', endpoint = 'image')
+@app.route('/thumb/<int:file_id>', endpoint = 'thumb')
 def image(file_id):
     thumb = True if '/thumb/' in request.url_rule.rule else False
     file_obj = File().get(file_id)
