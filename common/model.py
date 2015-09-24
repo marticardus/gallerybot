@@ -124,3 +124,12 @@ class Model(object):
         for key, value in form.items():
             self.setattr(key, value)
         return self
+
+    def as_form(self):
+        fields = dict()
+        for key in self.__dict__.keys():
+            if key not in self._exclude_fields:
+                attr = getattr(self, key, None)
+                if attr and type(attr) == Field:
+                    fields[key] = attr
+        return fields

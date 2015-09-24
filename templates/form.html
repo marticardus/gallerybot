@@ -2,10 +2,10 @@
 {% block body %}
 <form class="form-signin" method="post" action="">
         <h2 class="form-signin-heading">Add/Edit</h2>
-        {% for key, value in form.items() %}
+        {% for key, field in form.items() %}
         <label for="{{ key }}" class="sr-only">{{ key }}</label>
         {{ key }}
-        <input value="{{ value }}" name="{{ key }}" type="text" id="{{ key }}" class="form-control" placeholder="{{ key }}" required autofocus>
+        <input value="{{ field.value }}" name="{{ key }}" type="text" id="{{ key }}" class="form-control" placeholder="{{ key }}"{% if field.required == True %} required{% endif %} autofocus>
         {% endfor %}
 
         <div class="btn-group btn-group-justified" role="group" aria-label="buttons">

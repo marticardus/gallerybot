@@ -24,23 +24,22 @@ menu = MenuClass()
 def users(eid):
     if eid:
         if request.method == 'POST':
-            user = User().from_form(request.form)
-            user.eid.value = eid
+            user = User(eid = eid).from_form(request.form)
             user.save()
         else:
             user = User().get(eid = eid)
-        return menu.render('form.html', form = user.as_dict())
+        return menu.render('form.html', form = user.as_form())
     else:
         return menu.render('list.html', items = User().all())
 
 @app.route('/gallery/<int:id>/edit', methods = [ 'GET', 'POST' ])
 def gallery_edit(id):
     if request.method == 'POST':
-        gallery = Gallery().from_form(request.form)
+        gallery = Gallery(eid = id).from_form(request.form)
         gallery.save()
     else:
         gallery = Gallery().get(id)
-    return menu.render('form.html', form = gallery.as_dict())
+    return menu.render('form.html', form = gallery.as_form())
 
 @app.route('/gallery/<int:id>')
 def gallery(id):
