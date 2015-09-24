@@ -7,7 +7,7 @@
             </tr>
             {% for item in items %}
             <tr>
-                    <td>{{ item.eid }}</td>
+                    <td>{{ item.eid.value }}</td>
                     <td>
                             <ul>
                                     {% for key, value in item.as_dict().items() %}
@@ -15,7 +15,7 @@
                                     {% endfor %}
                             </ul>
                     </td>
-                    <td><a href="{{ url_for(endpoint, eid = item.eid) }}">{{ item.eid }}</a></td>
+                    <td><a href="{{ url_for(endpoint, eid = item.eid.value) }}">{{ item.eid.value }}</a></td>
             </tr>
             {% endfor %}
     </table>

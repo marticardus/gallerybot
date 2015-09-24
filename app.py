@@ -20,14 +20,16 @@ menu = MenuClass()
 
 @menu.add('Users', '/users')
 @app.route('/users', defaults = { 'eid' : None }, methods = [ 'GET', 'POST' ])
-@app.route('/users/add', defaults = { 'eid' : 0 }, methods = [ 'GET', 'POST' ])
 @app.route('/users/<int:eid>', methods = [ 'GET', 'POST' ])
 def users(eid):
     if eid:
-        if eid == 0:
-            return menu.render('form.html', form = { 'username' : 'username', 'password' : 'password'} )
+        if request.method == 'POST':
+            user = User().from_form(request.form)
+            user.eid.value = eid
+            user.save()
         else:
-            return menu.render('form.html', form = User().get(eid = eid).as_dict())
+            user = User().get(eid = eid)
+        return menu.render('form.html', form = user.as_dict())
     else:
         return menu.render('list.html', items = User().all())
 
@@ -111,7 +113,7 @@ def telegramWebHook():
                 text = 'User added to gallery'
             # set gallery permission at this point because i have chat id
         elif args[0] == '/start':
-            if int(args[1]) == int(update.message.chat.id):
+            if len(args) > 1 and int(args[1]) == int(update.message.chat.id):
                 text = 'Username:'
                 bot.sendMessage(update.message.from_user.id, text, reply_markup = { 'force_reply' : True })
             else:
@@ -119,13 +121,14 @@ def telegramWebHook():
 
         elif getattr(update.message, 'reply_to_message'):
             if update.message.reply_to_message.text == 'Username:':
-                user = User().search(tgid = update.message.chat.id)
-                user.username = update.message.text
-                user.save()
-                bot.sendMessage(update.message.chat.id, 'Password:', reply_markup = { 'force_reply' : True })
+                user = User().search(tgid = update.message.from_user.id)
+                if user:
+                    user.username = update.message.text
+                    user.save()
+                    bot.sendMessage(update.message.chat.id, 'Password:', reply_markup = { 'force_reply' : True })
                 return 'ok'
             elif update.message.reply_to_message.text == 'Password:':
-                user = User().search(tgid = update.message.chat.id)
+                user = User().search(tgid = update.message.from_user.id)
                 user.password = update.message.text
                 user.save()
                 text = 'User succesfuly registered'

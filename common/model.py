@@ -4,17 +4,39 @@ from .tinydbs3 import S3Storage
 import os
 import copy
 
+class Field(object):
+    def __init__(self, value = None, type = str, default = None, required = False, primary = False):
+        self.type = type
+        self.default = default
+        self.required = required
+        self.value = value
+    
+    def validate(self):
+        valid = False
+        if hasattr(self, 'value'):
+            if self.required: valid = True
+            try:
+                self.value = getattr(self, 'type')(self.value)
+                valid = True
+            except:
+                valid = False
+        return valid
+
 class Model(object):
     table = 'default'
-    exclude_fields = [ 'db', 'table', 'submit' ]
+    _exclude_fields = [ 'eid', 'db', 'table', 'submit', '_exclude_fields', 'exclude_fields' ]
 
     def __init__(self, **kwargs):
         table = os.path.join(current_app.config.get('DB_PATH', 'gallery_db'), '%s.json' % self.table)
         self.db = TinyDB(table, storage = S3Storage)
-        self.eid = None
+        self.eid = Field(type = int, required = False, primary = False)
 
         for key, value in kwargs.items():
-            setattr(self, key, value)
+            self.setattr(key, value)
+
+        exclude_fields = getattr(self, 'exclude_fields', None)
+        if exclude_fields:
+            self._exclude_fields += exclude_fields
 
     def all(self):
         rows = list()
@@ -54,41 +76,51 @@ class Model(object):
 
     def update(self):
         update = self.as_dict()
-        return self.db.update(update, eids = [ self.eid ])
+        return self.db.update(update, eids = [ self.eid.value ])
 
     def save(self):
-        if self.eid:
-            self.eid = int(self.eid)
+        if self.eid.value:
+            self.eid.validate()
             return self.update()
         else:
             create = self.create()
-            self.eid = create
+            self.eid.value = create
             return self
 
     def delete(self):
-        self.db.remove( eids = [ self.eid ] )
+        self.db.remove( eids = [ self.eid.value ] )
 
     def as_dict(self):
         args = dict()
         for key in self.__dict__.keys():
-            if key not in self.exclude_fields:
-                if getattr(self, key):
-                    args[key] = getattr(self, key)
+            if key not in self._exclude_fields:
+                attr = getattr(self, key, None)
+                if attr:
+                    if attr.validate():
+                        args[key] = attr.value
         return args
 
     def clean(self):
         for key in self.__dict__.keys():
-            if key not in self.exclude_fields:
+            if key not in self._exclude_fields:
                 delattr(self, key)
 
     def as_obj(self, row):
         self.clean()
-        self.eid = row.eid
+        if not getattr(self, 'eid', None):
+            self.eid = Field(value = row.eid, type = int, required = False, primary = False)
         for key, value in row.items():
-            setattr(self, key, value)
+            self.setattr(key, value)
         return copy.copy( self )
+
+    def setattr(self, key, value):
+        attr = getattr(self, key, Field())
+        if type(attr) != Field:
+            attr = Field()
+        attr.value = value
+        setattr(self, key, attr)
 
     def from_form(self, form):
         for key, value in form.items():
-            setattr(self, key, value)
+            self.setattr(key, value)
         return self
