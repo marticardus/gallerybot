@@ -1,8 +1,10 @@
-from common.model import Model
+from common.model import Model, Field
 from models.file import File
 
 class Gallery(Model):
     table = 'gallery'
+
+    tgid = Field(type = int, required = True, hidden = True)
 
     def __init__(self, **kwargs):
         super(Gallery, self).__init__(**kwargs)

@@ -4,9 +4,6 @@ from models.gallery import Gallery
 from .base import BotBase
 
 class Text(BotBase):
-    def __init__(self):
-        super(Text, self).__init__()
-
     def run(self):
         args = self.update.message.text.split(' ', 2)
         if args[0] == '/register':

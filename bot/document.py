@@ -3,9 +3,6 @@ from models.file import File
 from .base import BotBase
 
 class Document(BotBase):
-    def __init__(self):
-        super(Document, self).__init__()
-
     def run(self):
         gallery = Gallery().search(tgid = update.message.chat.id)
         if gallery:

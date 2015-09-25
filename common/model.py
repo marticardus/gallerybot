@@ -5,11 +5,12 @@ import os
 import copy
 
 class Field(object):
-    def __init__(self, value = None, type = str, default = None, required = False, primary = False):
+    def __init__(self, value = None, type = str, default = None, required = False, primary = False, hidden = False):
         self.type = type
         self.default = default
         self.required = required
         self.value = value
+        self.hidden = hidden
     
     def validate(self):
         valid = False
