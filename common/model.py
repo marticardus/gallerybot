@@ -22,9 +22,13 @@ class Field(object):
                 valid = False
         return valid
 
+    def __str__(self): return u'%s' % self.value
+    def __unicode__(self): return u'%s' % self.value
+    def __repr__(self): return '<Attribute Value: %s>' % self.value
+
 class Model(object):
     table = 'default'
-    _exclude_fields = [ 'eid', 'db', 'table', 'submit', '_exclude_fields', 'exclude_fields' ]
+    _exclude_fields = [ 'db', 'table', 'submit', '_exclude_fields', 'exclude_fields' ]
 
     def __init__(self, **kwargs):
         table = os.path.join(current_app.config.get('DB_PATH', 'gallery_db'), '%s.json' % self.table)
@@ -133,3 +137,9 @@ class Model(object):
                 if attr and type(attr) == Field:
                     fields[key] = attr
         return fields
+
+    def __repr__(self):
+        if self.eid:
+            return '<%s: %s>' % (self.__class__.__name__, self.eid.value)
+        else:
+            return '<%s>' % (self.__class__.__name__)

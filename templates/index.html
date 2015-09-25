@@ -7,10 +7,10 @@
             </tr>
             {% for gallery in galleries %}
             <tr>
-                    <td>{{ gallery.eid }}</td>
-                    <td><a href="{{ url_for('gallery', id = gallery.eid) }}">{{ gallery.title }}</a></td>
+                    <td>{{ gallery.eid.value }}</td>
+                    <td><a href="{{ url_for('gallery', id = gallery.eid.value) }}">{{ gallery.title }}</a></td>
                     <td>
-                            <a href="{{ url_for('gallery_edit', id = gallery.eid) }}">Edit</a>
+                            <a href="{{ url_for('gallery_edit', id = gallery.eid.value) }}">Edit</a>
                     </td>
             </tr>
             {% endfor %}
