@@ -8,10 +8,10 @@
             </tr>
             {% for file in files %}
             <tr>
-                    <td>{{ file.eid }}</td>
+                    <td>{{ file.eid.value }}</td>
                     <td>
-                            <a href="{{ url_for('image', file_id = file.eid ) }}">
-                                    <img src="{{ url_for('thumb', file_id = file.eid )}}" alt="{{ file.file_id }}">
+                            <a href="{{ url_for('image', file_id = file.eid.value ) }}">
+                                    <img src="{{ url_for('thumb', file_id = file.eid.value )}}" alt="{{ file.file_id }}">
                             </a>
                     </td>
                     <td>actions</td>

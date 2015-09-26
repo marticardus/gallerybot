@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 # System
-import os, json, sys
-import shutil
+import os
 
 # 3rd party
-from flask import Flask, request, url_for, send_file, send_from_directory, jsonify, redirect, abort
+from flask import Flask, request, url_for, send_file, send_from_directory, redirect, abort
 from telegram import Bot, Update
 
 # Custom
@@ -12,7 +11,7 @@ from models.user import User
 from models.file import File
 from models.gallery import Gallery
 from common.menu import MenuClass
-from common.utils import read_file, read_json, write_file, write_json, thumbnail
+from common.utils import read_json
 from bot import Webhook
 
 app = Flask(__name__)

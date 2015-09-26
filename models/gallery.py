@@ -11,6 +11,6 @@ class Gallery(Model):
 
     def delete(self):
         if getattr(self, 'eid', None):
-            for f in File().filter( gallery_eid = self.eid ):
+            for f in File().filter( gallery_eid = self.eid.value ):
                 f.delete()
         super(Gallery, self).delete()

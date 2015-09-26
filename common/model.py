@@ -53,11 +53,14 @@ class Model(object):
         rows = list()
         eids = list()
         for field, value in kwargs.iteritems():
-            founds = self.db.search(where(field) == value)
-            for found in founds if founds else []:
-                if found.eid not in eids:
-                    eids.append(found.eid)
-                    rows.append( self.as_obj(found) )
+            if type(value) != Field:
+                value = self.setattr(field, value)
+            if value.validate():
+                founds = self.db.search(where(field) == value.value)
+                for found in founds if founds else []:
+                    if found.eid not in eids:
+                        eids.append(found.eid)
+                        rows.append( self.as_obj(found) )
         return rows
 
     def get(self, eid):
@@ -68,11 +71,14 @@ class Model(object):
 
     def search(self, **kwargs):
         for field, value in kwargs.iteritems():
-            row = self.db.search(where(field) == value)
-            if row:
-                if type(row) == list:
-                    row = row[0]
-                return self.as_obj(row)
+            if type(value) != Field:
+                value = self.setattr(field, value)
+            if value.validate():
+                row = self.db.search(where(field) == value.value)
+                if row:
+                    if type(row) == list:
+                        row = row[0]
+                    return self.as_obj(row)
         return False
 
     def create(self):
@@ -124,6 +130,7 @@ class Model(object):
             attr = Field()
         attr.value = value
         setattr(self, key, attr)
+        return attr
 
     def from_form(self, form):
         for key, value in form.items():
