@@ -1,3 +1,4 @@
+from flask import url_for
 from models.gallery import Gallery
 from models.file import File
 from .base import BotBase
@@ -18,11 +19,11 @@ class Document(BotBase):
                 os.remove(file_name)
                 write_file('%s.json' % file_name, self.update.to_json())
             if writed:
-                file_id = File(gallery_eid = gallery.eid, file_id = self.update.message.document.file_id)
+                file_id = File(gallery_eid = gallery.eid.value, file_id = self.update.message.document.file_id)
                 file_id.save()
                 sendLink = getattr(gallery, 'sendLink', None)
-                if sendLink == 'True':
-                    self.text = 'File URL: %s' % url_for('image', file_id = file_id.eid, _external = True, disable_web_page_preview = True)
+                if sendLink and sendLink.value:
+                    self.text = 'File URL: %s' % url_for('image', file_id = file_id.eid.value, _external = True, disable_web_page_preview = True)
             else:
                 self.text = 'Failed to download file'
         else:
