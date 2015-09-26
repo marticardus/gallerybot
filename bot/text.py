@@ -50,15 +50,22 @@ class Text(BotBase):
             else:
                 self.text = 'Gallery is not registered'
             # TODO: Confirm
-        elif args[0] == '/config':
+        elif args[0] == '/settings':
             args.pop(0)
-            gallery = Gallery.search(tgid = self.chat_id)
+            gallery = Gallery().search(tgid = self.chat_id)
             if gallery:
                 if len(args) == 0:
-                    self.text = g.config(self.chat_id)
+                    self.text = gallery.as_dict()
                 elif len(args) == 1:
-                    self.text = g.config(self.chat_id, args[0])
+                    value = gallery.as_dict()
+                    if getattr(gallery, args[0]):
+                        self.text = getattr(gallery, args[0]).value
+                    else:
+                        self.text = 'Setting %s not found' % args[0]
                 else:
-                    self.text = g.config(self.chat_id, args[0], args[1])
+                    value = ' '.join(args[1:])
+                    gallery.setattr(args[0], value)
+                    gallery.save()
+                    self.text = 'Setting %s set to %s' % (args[0], value)
             else:
                 self.text = 'Gallery is not registered'
