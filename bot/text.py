@@ -18,20 +18,20 @@ class Text(BotBase):
         elif args[0] == '/start':
             if len(args) > 1 and int(args[1]) == int(self.chat_id):
                 self.text = 'Username:'
-                self.message_args = reply_markup = { 'force_reply' : True }
+                self.message_args = { 'reply_markup' : { 'force_reply' : True } }
 
         elif getattr(self.update.message, 'reply_to_message'):
             if self.update.message.reply_to_message.text == 'Username:':
                 user = User().search(tgid = self.user_id)
                 if user:
-                    user.username = self.update.message.text
+                    user.setattr('username', self.update.message.text)
                     user.save()
                     self.text = 'Password:'
-                    self.message_args = reply_markup = { 'force_reply' : True }
+                    self.message_args = { 'reply_markup' : { 'force_reply' : True } }
                 return 'ok'
             elif self.update.message.reply_to_message.text == 'Password:':
                 user = User().search(tgid = self.user_id)
-                user.password = self.update.message.text
+                user.setattr('password', self.update.message.text)
                 user.save()
                 self.text = 'User succesfuly registered'
         elif args[0] == '/create':
