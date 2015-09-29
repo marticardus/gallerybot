@@ -1,5 +1,6 @@
 from flask import current_app
 from tinydb import TinyDB, where
+from tinydb.operations import delete
 from .tinydbs3 import S3Storage
 import os
 import copy
@@ -29,19 +30,24 @@ class Field(object):
 
 class Model(object):
     table = 'default'
-    _exclude_fields = [ 'db', 'table', 'submit', '_exclude_fields', 'exclude_fields' ]
+    _exclude_fields = [ 'db', 'table', 'submit', '_exclude_fields', 'exclude_fields', '_deleted_args' ]
+    _deleted_args = list()
 
     def __init__(self, **kwargs):
         table = os.path.join(current_app.config.get('DB_PATH', 'gallery_db'), '%s.json' % self.table)
         self.db = TinyDB(table, storage = S3Storage)
         self.eid = Field(type = int, required = False, primary = False)
 
-        for key, value in kwargs.items():
-            self.setattr(key, value)
-
         exclude_fields = getattr(self, 'exclude_fields', None)
         if exclude_fields:
             self._exclude_fields += exclude_fields
+
+        for key, value in kwargs.items():
+            if key == '_deleted_args':
+                self._deleted_args = value 
+
+            if key not in self._exclude_fields:
+                self.setattr(key, value)
 
     def all(self):
         rows = list()
@@ -87,6 +93,11 @@ class Model(object):
 
     def update(self):
         update = self.as_dict()
+        for arg in self._deleted_args:
+            try:
+                self.db.update(delete(arg), eids = [ self.eid.value ])
+            except:
+                pass
         return self.db.update(update, eids = [ self.eid.value ])
 
     def save(self):
@@ -129,8 +140,12 @@ class Model(object):
         if type(attr) != Field:
             attr = Field()
         attr.value = value
-        setattr(self, key, attr)
-        return attr
+        if key not in self._exclude_fields:
+            setattr(self, key, attr)
+            return attr
+        if key == '_deleted_args':
+            self._deleted_args.append(value)
+        return False
 
     def from_form(self, form):
         for key, value in form.items():
