@@ -30,9 +30,6 @@ def users(eid):
         if request.method == 'POST':
             user = User(eid = eid).from_form(request.form)
             user.save()
-            print request.form
-            import sys
-            sys.stdout.flush()
         else:
             user = User().get(eid = eid)
         return menu.render('form.html', form = user.as_form())
