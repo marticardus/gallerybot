@@ -89,5 +89,5 @@ def telegramWebHook():
 
 if __name__ == '__main__':
     bot = Bot(app.config.get('TOKEN'))
-    bot.setWebhook('https://%s/%s' % (app.config.get('WEBHOOK_HOST'), app.config.get('WEBHOOK_ROUTE')))
+    #bot.setWebhook('https://%s/%s' % (app.config.get('WEBHOOK_HOST'), app.config.get('WEBHOOK_ROUTE')))
     app.run(host='0.0.0.0')

@@ -3,4 +3,5 @@ requests
 tinydb
 python-telegram-bot
 boto
+htmlmin
 Pillow

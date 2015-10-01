@@ -1,5 +1,6 @@
 from functools import wraps
 from flask import render_template, request
+from htmlmin.main import minify
 
 class MenuClass(object):
     def __init__(self):
@@ -16,4 +17,4 @@ class MenuClass(object):
         return self.menu
 
     def render(self, template, **kwargs):
-        return render_template(template, endpoint = request.endpoint, menu = self.make(), **kwargs)
+        return minify(render_template(template, endpoint = request.endpoint, menu = self.make(), **kwargs))
